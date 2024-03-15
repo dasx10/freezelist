@@ -1,0 +1,24 @@
+{
+  "name": "ylist",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test"      : "node --test ./index.node.test.js",
+    "benchmark" : "node ./benchmark.js"
+  },
+  "keywords": [
+    "array",
+    "memoize",
+    "memoizeWeak",
+    "optimization",
+    "immutable",
+    "list",
+    "proxy",
+    "freeze"
+  ],
+  "author": "Kleshchev Yevhenii <dasx10@gmail.com>",
+  "license": "MIT",
+  "types": "./index.d.ts"
+}
