@@ -8,12 +8,12 @@ Or any javascript agent.
 ### INSTALL
 
 ```
-npm i ylist
+npm i freezelist
 ```
 
 ###  USE
 ```
-import List from "ylist";
+import List from "freezelist";
 
 const animals = List([new Dog, new Cat, new Duck]);
 const animals.filter... 
@@ -172,9 +172,9 @@ For your own testing, you can review the `benchmark.js` file located in the libr
 ##### Other
 - The library contains several functions for memoization. You can apply them if necessary.
 ```
-import { memoize } from "ylist";
+import { memoize } from "freezelist";
 ```
 
 ```
-import { memoizeWeak } from "ylist"
+import { memoizeWeak } from "freezelist"
 ```
