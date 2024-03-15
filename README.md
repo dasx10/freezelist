@@ -1,4 +1,4 @@
-# Y LIST
+# FREEZELIST
 
 ## DESCRIPTION
 
@@ -176,5 +176,40 @@ import { memoize } from "freezelist";
 ```
 
 ```
+var inc = (next) => console.log("incrementing") || next++;
+var memoInc = memoize(inc);
+memoInc(2); // 3 | console -> incrementing
+memoInc(2); // 3
+memoInc(2); // 3
+memoInc(3); // 4 | console -> incrementing
+memoInc(3); // 4
+memoInc(2); // 3
+memoInc(1); // 2 | console -> incrementing
+
+var add = (next) => (value) => next + value;
+var addMemo = memoize((value) => add(value));
+addMemo(1) === addMemo(1); // true
+```
+
+
+```
 import { memoizeWeak } from "freezelist"
+```
+
+```
+var find = (call) => (values) => values.find(call);
+var findMemo = memoizeWeak(find);
+var identity = value => value
+findMemo(identity) === findMemo(identity); // true
+memoizeWeak(find) === memoizeWeak(find); // false
+```
+
+```
+import { memoWeak } from "freezelist"
+
+var find = (call) => (values) => values.find(call);
+var findMemo = memoWeak(find);
+var identity = value => value
+findMemo(identity) === findMemo(identity); // true
+memoWeak(find) === memoWeak(find); // true
 ```

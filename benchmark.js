@@ -1,10 +1,9 @@
-import List from "./index.js";
+import List, { memoize } from "./index.js";
 
 console.log("start benchmark");
 
 
-var size        = 10000;
-var lastElement = size - 1;
+var size        = 1000;
 var iteartions  = 1000;
 
 console.table({
@@ -12,15 +11,11 @@ console.table({
   iteartions,
 });
 
-var testArray            = Array.from({ length: size }, (_, i) => i);
-var testList1            = List(testArray);
-var testListAppendedSize = testList1.concat(size);
+var testArray = Array.from({ length: size }, (_, i) => i);
+var testList1 = List(testArray);
 
 var is             = (next) => Object.defineProperty((value) => value === next, "name", { value: " (is:" + next + ") " });
-var isLastElement  = is(lastElement);
-var mid            = Math.floor(lastElement / 2);
-var isMidElement   = is(mid);
-var isFirstElement = is(0);
+var isMemo         = memoize((value) => is(value));
 
 var results = new Map();
 var testCase = (key) => (values, call, description) => {
@@ -66,44 +61,28 @@ var someCase          = testCase("some");
 var everyCase         = testCase("every");
 
 var cases = [
-  findCase,
-  findLastCase,
-  findIndexCase,
-  findLastIndexCase,
+  // findCase,
+  // findLastCase,
+  // findIndexCase,
+  // findLastIndexCase,
   filterCase,
-  someCase,
-  everyCase
+  // someCase,
+  // everyCase
 ];
 
-var uses = [
- isFirstElement,
- isMidElement,
- isLastElement
-];
+var uses = Array.from({ length: size }, (_, i) => isMemo(i));
 
-uses.forEach((exec) => {
-  var name =  `arr`;
-  var i = iteartions;
-  while (i--) cases.forEach((test) => test(testArray, exec, name));
-});
+var createTest = (values, name, _is = isMemo) => {
+  uses.forEach((value) => {
+    var exec = _is(value);
+    var i = iteartions;
+    while (i--) cases.forEach((test) => test(values, exec, name));
+  });
+}
 
-uses.forEach((exec) => {
-  var name =  `list`;
-  var i = iteartions;
-  while (i--) cases.forEach((test) => test(testList1, exec, name));
-});
+createTest(testArray, "arr");
+createTest(testList1, "list");
 
-[(0), (mid), (size - 1)].forEach((value) => {
-  var name =  `listN`;
-  var i = iteartions;
-  while (i--) cases.forEach((test) => test(testList1, is(value), name));
-});
-
-uses.forEach((exec) => {
-  var name =  `list+size`;
-  var i = iteartions;
-  while (i--) cases.forEach((test) => test(testListAppendedSize, exec, name));
-});
 
 var best  = {}
 var avg   = {}
@@ -132,24 +111,13 @@ results.forEach((result, key) => results.set(key, JSON.stringify({
   total : result.total,
   slow  : result.slow
 })));
-console.table(Object.fromEntries(results));
+
+// console.table(Object.fromEntries(results));
 
 console.log("array vs list when always same function");
 console.table({
-  "average"      : avg["arr"],
-  "avg list"     : avg["list"],
   "average diff" : avg["arr"] - avg["list"],
   "total diff"   : total["arr"] - total["list"],
   "slow diff"    : slow["arr"] - slow["list"],
   "best diff"    : best["arr"] - best["list"]
-});
-
-console.log("array vs list when always new function");
-console.table({
-  "average"      : avg["arr"],
-  "avg list"     : avg["listN"],
-  "average diff" : avg["arr"] - avg["listN"],
-  "total diff"   : total["arr"] - total["listN"],
-  "slow diff"    : slow["arr"] - slow["listN"],
-  "best diff"    : best["arr"] - best["listN"]
 });

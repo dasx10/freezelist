@@ -44,8 +44,10 @@ export default function List<Values extends readonly any[]>(values: Values): Rea
 
 declare function memoize<Call extends (value: any) => any>(call: Call): Call;
 declare function memoizeWeak<Call extends (value: any) => any>(call: Call): Call;
+declare function memoWeak<Call extends (value: any) => any>(call: Call): Call;
 
 export {
   memoize,
   memoizeWeak,
+  memoWeak,
 };

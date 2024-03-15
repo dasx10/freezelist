@@ -10,17 +10,20 @@ function*iterator(){}
 
 var createMemoize = (constructor) => (call) => {
   var cache = new constructor();
-  return (value) => cache.has(value) ? cache.get(value) : cache.set(value, call(value)).get(value);
+  return (value, index, values) => cache.has(value) ? cache.get(value) : cache.set(value, call(value, index, values)).get(value);
 }
 
 export var memoize     = createMemoize(Map);
 export var memoizeWeak = createMemoize(WeakMap);
+export var memoWeak    = memoizeWeak(memoizeWeak);
 
 var memoizeArray = (call) => {
   var map = new WeakMap();
   return (value, left, right) => map.has(value) ? map.get(value) : map.set(value, call(value, left, right)).get(value);
 }
 
+
+var symbolList = Symbol();
 var isArray = Array.isArray;
 
 var reverse = new WeakMap();
@@ -28,6 +31,7 @@ var reverse = new WeakMap();
 export var empty = new Proxy([], {
   get: (target, key) => {
     switch (key) {
+      case symbolList: true;
       case "length": return 0;
 
       case "find"       :
@@ -72,15 +76,53 @@ export var empty = new Proxy([], {
       case "entries":
         return iterator;
 
+      case "concat":
+        return (...values) => {
+          switch (values.length) {
+            case 0: return empty;
+            case 1: return List(values[0]);
+            default: return List(values.shift()).concat(...values);
+          }
+        }
+
       default:
         return Reflect.get(target, key);
     }
   }
 });
 
+var findIndexTree = (left, right) => memoizeWeak((call) => {
+  var index = left.findIndex(call);
+  return index === -1 ? right.findIndex(call) : index;
+});
+
+var findLastIndexTree = (left, right) => memoizeWeak((call) => {
+  var index = right.findLastIndex(call);
+  return index === -1 ? left.findLastIndex(call) : index;
+});
+
+var filterTree = (left, right) => {
+  return memoizeWeak((call) => left.filter(call).concat(right.filter(call)));
+}
+
+var filterMemo = (values, findIndex, findLastIndex) => {
+  var cache = new WeakMap();
+  return (call) => {
+    if (cache.has(call)) return cache.get(call);
+    var leftIndex = findIndex(call);
+    if (leftIndex === -1) return cache.set(call, empty) && empty;
+    var rightIndex = findLastIndex(call);
+    if (leftIndex === rightIndex) return cache.set(call, List([values[leftIndex]])).get(call);
+    var create = values.slice(leftIndex, rightIndex + 1).filter(call);
+    if (create.length === values.length) return cache.set(call, List(values)).get(call);
+    return cache.set(call, List(create)).get(call);
+  }
+}
+
 var createBTreeLikeSearching = (value, left, right) => {
   var findIndex;
   var findLastIndex;
+  var filter;
   var slice;
 
   var find = (call) => {
@@ -95,36 +137,13 @@ var createBTreeLikeSearching = (value, left, right) => {
     return value[index];
   }
 
-  var some = (call) => findIndex(call) !== -1;
-
-  var _filter = new WeakMap();
-  var filter = (call) => {
-    if (_filter.has(call)) return _filter.get(call);
-    var leftIndex = findIndex(call);
-    if (leftIndex !== -1) {
-      var rightIndex = findLastIndex(call);
-      if (rightIndex !== -1) {
-        if (leftIndex === rightIndex) {
-          return _filter.set(call, List([value[leftIndex]])).get(call);
-        }
-        return _filter.set(call, List(value.slice(leftIndex, rightIndex + 1).filter(call))).get(call);
-      }
-    }
-    return empty
-  }
-
+  var some  = (call) => findIndex(call) !== -1;
   var every = (call) => filter(call).length === value.length;
 
   if (left && right) {
-    findIndex = (call) => {
-      var index = left.findIndex(call);
-      return index === -1 ? right.findIndex(call)  : index;
-    }
-
-    findLastIndex = (call) => {
-      var index = left.findLastIndex(call);
-      return index === -1 ? right.findLastIndex(call) : index;
-    }
+    findIndex     = findIndexTree(left, right);
+    findLastIndex = findLastIndexTree(left, right);
+    filter        = filterTree(left, right);
 
     slice = (start, end) => {
       if (start === void 0) return value;
@@ -154,7 +173,8 @@ var createBTreeLikeSearching = (value, left, right) => {
       return right.slice(0, end);
     }
   } else {
-    var _findIndex     = new WeakMap();
+    var _findIndex = new WeakMap();
+    var _findLastIndex = new WeakMap();
     findIndex = (call) => {
       if (_findIndex.has(call)) return _findIndex.get(call);
       if (_findLastIndex.has(call)) {
@@ -169,7 +189,6 @@ var createBTreeLikeSearching = (value, left, right) => {
       return index;
     }
 
-    var _findLastIndex = new WeakMap();
     findLastIndex = (call) => {
       if (_findLastIndex.has(call)) return _findLastIndex.get(call);
       if (_findIndex.has(call)) {
@@ -184,11 +203,13 @@ var createBTreeLikeSearching = (value, left, right) => {
       return index;
     }
 
+    filter = filterMemo(value, findIndex, findLastIndex);
+
     slice = (start, end) => {
       var create = value.slice(start, end);
       if (create.length === 0) return empty;
-      if (create.length === value.length) return value;
-      return create;
+      if (create.length === value.length) return List(value);
+      return List(create);
     };
   }
   return ({
@@ -210,7 +231,7 @@ var createBTreeLikeSearching = (value, left, right) => {
 var List = memoizeArray((value, left, right) => {
   if (!value) return empty;
   var length = value.length;
-  if (value.toArray) return List(value.toArray());
+  if (value[symbolList]) return value;
   if (length === 0) return empty;
 
   var map     = new WeakMap();
@@ -233,6 +254,7 @@ var List = memoizeArray((value, left, right) => {
   var is = new Proxy(value, {
     get: (target, key) => {
       switch (key) {
+        case symbolList: true;
         case "toArray"       : return () => Reflect.get(target, key);
         case "value"         : return target;
         case "length"        : return length;
@@ -279,13 +301,17 @@ var List = memoizeArray((value, left, right) => {
               var test = value && typeof value === "object";
               if (test && concat.has(value)) return concat.get(value);
 
-              if (isArray(value) && value.length === 0) {
-                concat.set(value, is);
-                return is;
+              if (isArray(value)) {
+                if (value.length === 0) {
+                  concat.set(value, is);
+                  return is;
+                }
+                value = List(value);
+                if (concat.has(value)) return concat.get(value);
               }
 
               var create = target.concat(value);
-              if (create.length === length) return is;
+              if (create.length === length) create = is;
               else create = List(create, is, isArray(value) ? value : [value]);
               test && concat.set(value, create);
               return create;
@@ -297,7 +323,7 @@ var List = memoizeArray((value, left, right) => {
                 if (isArray(value)) {
                   if (value.length === 0) return;
                   bit = -1;
-                  return next.push(value);
+                  return next.push(List(value));
                 }
                 if (bit > -1) return next[bit].push(value);
                 bit = next.length;
