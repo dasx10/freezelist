@@ -1,5 +1,4 @@
-// import List from "./index.js";
-import List from "./f.js";
+import List from "./index.js";
 import memoize from "./memoize.js";
 
 console.log("start benchmark");
@@ -113,8 +112,6 @@ results.forEach((result, key) => results.set(key, JSON.stringify({
   total : result.total,
   slow  : result.slow
 })));
-
-// console.table(Object.fromEntries(results));
 
 console.log("array vs list when always same function");
 console.table({

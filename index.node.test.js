@@ -1,7 +1,7 @@
 import { it, describe } from "node:test";
 import assert from 'node:assert';
 
-import List from "./f.js";
+import List from "./index.js";
 
 (() => {
   var length = 1000;

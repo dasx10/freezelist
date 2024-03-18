@@ -1,4 +1,6 @@
-import List, { memoize } from "./index.js";
+import List from "./index.js";
+import memoize from "./memoize.js";
+
 
 (() => {
 
@@ -8,7 +10,7 @@ var gtMemo      = memoize((value) => gt(value));
 
 var iterations = 10;
 
-var testArray = createArray(10000);
+var testArray = createArray(1000);
 var testList1 = List(testArray);
 
 var end   = testList1.length;
@@ -38,6 +40,8 @@ while (iterations--) {
   }
 }
 
+var method = "filter";
+
   var test = (values, call, name) => {
     var total = 0;
     var length = testArray.length;
@@ -47,7 +51,7 @@ while (iterations--) {
       testArray.slice(0, end).forEach(value => {
         var exec = call(value);
         var now  = performance.now();
-        values.filter(exec);
+        values[method](exec);
         var time = performance.now() - now;
         total += time;
       });
