@@ -40,14 +40,3 @@ type ArrayMutationMethodKey = "push" | "pop" | "shift" | "unshift" | "slice" | "
   * ```
   */
 export default function List<Values extends readonly any[]>(values: Values): Readonly<Exclude<Values, ArrayMutationMethodKey>>;
-
-
-declare function memoize<Call extends (value: any) => any>(call: Call): Call;
-declare function memoizeWeak<Call extends (value: any) => any>(call: Call): Call;
-declare function memoWeak<Call extends (value: any) => any>(call: Call): Call;
-
-export {
-  memoize,
-  memoizeWeak,
-  memoWeak,
-};
