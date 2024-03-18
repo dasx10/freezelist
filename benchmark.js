@@ -1,4 +1,6 @@
-import List, { memoize } from "./index.js";
+// import List from "./index.js";
+import List from "./f.js";
+import memoize from "./memoize.js";
 
 console.log("start benchmark");
 
@@ -116,6 +118,10 @@ results.forEach((result, key) => results.set(key, JSON.stringify({
 
 console.log("array vs list when always same function");
 console.table({
+  "avg array"    : avg["arr"],
+  "avg list"     : avg["list"],
+  "total array"  : total["arr"],
+  "total list"   : total["list"],
   "average diff" : avg["arr"] - avg["list"],
   "total diff"   : total["arr"] - total["list"],
   "slow diff"    : slow["arr"] - slow["list"],

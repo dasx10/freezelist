@@ -1,374 +1,327 @@
-export var always            = (value) => () => value;
-export var F                 = always(false);
-export var T                 = always(true);
-var index                    = always(-1);
-var nil                      = always(undefined);
-export var alwaysEmptyString = always("");
-export var alwaysEmptyList   = () => empty;
+import memoizeWeak from "./memoizeWeak.js";
+import symbol from "./symbol.js";
 
-function*iterator(){}
+var Left  = new WeakMap();
+var Right = new WeakMap();
 
-var createMemoize = (constructor) => (call) => {
-  var cache = new constructor();
-  return (value, index, values) => cache.has(value) ? cache.get(value) : cache.set(value, call(value, index, values)).get(value);
-}
+var getRight = (context) => Right.get(List(context));
+var getLeft  = (context) => Left.get(List(context));
+var setRight = (context, value) => Right.set(List(context), value);
+var setLeft  = (context, value) => Left.set(List(context), value);
 
-export var memoize     = createMemoize(Map);
-export var memoizeWeak = createMemoize(WeakMap);
-export var memoWeak    = memoizeWeak(memoizeWeak);
-
-var memoizeArray = (call) => {
-  var map = new WeakMap();
-  return (value, left, right) => map.has(value) ? map.get(value) : map.set(value, call(value, left, right)).get(value);
-}
-
-
-var symbolList = Symbol();
-var isArray = Array.isArray;
-
-var reverse = new WeakMap();
-
-export var empty = new Proxy([], {
-  get: (target, key) => {
-    switch (key) {
-      case symbolList: true;
-      case "length": return 0;
-
-      case "find"       :
-      case "findLast"   :
-      case "at"         :
-        return nil;
-
-      case "map"        :
-      case "filter"     :
-      case "flatMap"    :
-      case "toSorted"   :
-      case "toReversed" :
-      case "toSpliced"  :
-        return alwaysEmptyList;
-
-      case "some"     :
-      case "includes" : return F;
-      case "every"    : return T;
-
-      case "findIndex"     :
-      case "findLastIndex" :
-      case "indexOf"       :
-      case "lastIndexOf"   : return index;
-
-      case "push":
-      case "pop":
-      case "shift":
-      case "unshift":
-      case "splice":
-      case "sort":
-      case "reverse":
-      case "fill":
-        return void 0;
-
-      case "toString":
-      case "join":
-      case "toLocaleString":
-        return alwaysEmptyString;
-
-      case "values":
-      case "keys":
-      case "entries":
-        return iterator;
-
-      case "concat":
-        return (...values) => {
-          switch (values.length) {
-            case 0: return empty;
-            case 1: return List(values[0]);
-            default: return List(values.shift()).concat(...values);
-          }
-        }
-
-      default:
-        return Reflect.get(target, key);
-    }
-  }
-});
-
-var findIndexTree = (left, right) => memoizeWeak((call) => {
-  var index = left.findIndex(call);
-  return index === -1 ? right.findIndex(call) : index;
-});
-
-var findLastIndexTree = (left, right) => memoizeWeak((call) => {
-  var index = right.findLastIndex(call);
-  return index === -1 ? left.findLastIndex(call) : index;
-});
-
-var filterTree = (left, right) => {
-  return memoizeWeak((call) => left.filter(call).concat(right.filter(call)));
-}
-
-var filterMemo = (values, findIndex, findLastIndex) => {
-  var cache = new WeakMap();
-  return (call) => {
-    if (cache.has(call)) return cache.get(call);
-    var leftIndex = findIndex(call);
-    if (leftIndex === -1) return cache.set(call, empty) && empty;
-    var rightIndex = findLastIndex(call);
-    if (leftIndex === rightIndex) return cache.set(call, List([values[leftIndex]])).get(call);
-    var create = values.slice(leftIndex, rightIndex + 1).filter(call);
-    if (create.length === values.length) return cache.set(call, List(values)).get(call);
-    return cache.set(call, List(create)).get(call);
-  }
-}
-
-var createBTreeLikeSearching = (value, left, right) => {
-  var findIndex;
-  var findLastIndex;
-  var filter;
-  var slice;
-
-  var find = (call) => {
-    var index = findIndex(call);
-    if (index === -1) return;
-    return value[index];
-  }
-
-  var findLast = (call) => {
-    var index = findLastIndex(call);
-    if (index === -1) return;
-    return value[index];
-  }
-
-  var some  = (call) => findIndex(call) !== -1;
-  var every = (call) => filter(call).length === value.length;
-
-  if (left && right) {
-    findIndex     = findIndexTree(left, right);
-    findLastIndex = findLastIndexTree(left, right);
-    filter        = filterTree(left, right);
-
-    slice = (start, end) => {
-      if (start === void 0) return value;
-      if (end === void 0) {
-        if (start === 0) return value;
-        if (start < 0) start = value.length + start;
-        if (start > value.length) return empty;
-
-        var leftLength = left.length;
-        if (start < leftLength) return left.slice(0, start).concat(right);
-        if (start > leftLength) return right.slice(start - leftLength);
-        return right;
-      }
-
-      if (end === 0) return empty;
-      if (end < 0)   end = value.length + end;
-
-      var leftLength = left.length;
-      if (start === 0) {
-        if (end < leftLength) return left.slice(0, end);
-        if (end > leftLength) return left.concat(right.slice(0, end - leftLength));
-        return left;
-      }
-
-      if (start > leftLength) return right.slice(start - leftLength, end - leftLength);
-      if (start < leftLength) return left.slice(start).concat(right.slice(0, end - leftLength));
-      return right.slice(0, end);
-    }
-  } else {
-    var _findIndex = new WeakMap();
-    var _findLastIndex = new WeakMap();
-    findIndex = (call) => {
-      if (_findIndex.has(call)) return _findIndex.get(call);
-      if (_findLastIndex.has(call)) {
-        var index = _findLastIndex.get(call);
-        if (index === -1) return index;
-        index = value.findIndex((value, key, values) => key === index || call(value, key, values));
-        _findIndex.set(call, index);
-        return index;
-      }
-      var index = value.findIndex(call);
-      _findIndex.set(call, index);
-      return index;
-    }
-
-    findLastIndex = (call) => {
-      if (_findLastIndex.has(call)) return _findLastIndex.get(call);
-      if (_findIndex.has(call)) {
-        var index = _findIndex.get(call);
-        if (index === -1) return index;
-        index = value.findLastIndex((value, key, values) => key === index || call(value, key, values));
-        _findLastIndex.set(call, index);
-        return index;
-      }
-      var index = value.findLastIndex(call);
-      _findLastIndex.set(call, index);
-      return index;
-    }
-
-    filter = filterMemo(value, findIndex, findLastIndex);
-
-    slice = (start, end) => {
-      var create = value.slice(start, end);
-      if (create.length === 0) return empty;
-      if (create.length === value.length) return List(value);
-      return List(create);
-    };
-  }
-  return ({
-    find,
-    findLast,
-    findIndex,
-    findLastIndex,
-    filter,
-    slice,
-    some,
-    every,
-  });
-}
+var Cache = new WeakMap();
+var getCache = (context) => Cache.get(context) || Cache.set(context, new Map).get(context);
 
 /**
-  * @template {*[]} Value
-  * @param {Value} value
+  * @param {Object} context
+  * @param {string} name
+  * @returns {WeakMap}
   */
-var List = memoizeArray((value, left, right) => {
-  if (!value) return empty;
-  var length = value.length;
-  if (value[symbolList]) return value;
-  if (length === 0) return empty;
+var getStore = (context, name) => {
+  var map = getCache(context);
+  return map.get(name) || map.set(name, new WeakMap).get(name);
+}
 
-  var map     = new WeakMap();
-  var flatMap = new WeakMap();
-  var sort    = new WeakMap();
+export var saveStore = (context, name, key) => (value) => (getStore(context, name).set(key, value), value);
 
-  var {
-    find,
-    findLast,
-    findIndex,
-    findLastIndex,
-    some,
-    every,
-    filter,
-    slice,
-  } = createBTreeLikeSearching(value, left, right);
+export function tree (useTree, use, value) {
+  var left = getLeft(this);
+  if (left) return useTree.call(this, left, getRight(this), value);
+  return use.call(this, value);
+}
 
-  var concat = new WeakMap();
+var isArray = Array.isArray;
+var nIndex = (key, length) => key < 0 ? 0 : key > length ? length : key;
+var fIndex = (key, length) => nIndex(key < 0 ? length + key : key, length);
 
-  var is = new Proxy(value, {
-    get: (target, key) => {
-      switch (key) {
-        case symbolList: true;
-        case "toArray"       : return () => Reflect.get(target, key);
-        case "value"         : return target;
-        case "length"        : return length;
-        case "findIndex"     : return findIndex;
-        case "findLastIndex" : return findLastIndex;
-        case "find"          : return find;
-        case "findLast"      : return findLast;
-        case "filter"        : return filter;
-        case "slice"         : return slice;
-        case "some"          : return some;
-        case "every"         : return every;
-        case "map": return (call) => {
-          if (map.has(call)) return map.get(call);
-          var value = List(target.map(call));
-          map.set(call, value);
-          return target.map(call);
+var isIgnoreSlice = (start, end, length) => (start === undefined)
+  || (fIndex(start) <= 0) && (end === undefined || fIndex(end) >= length);
+
+var isEmptySlice  = (start, end, length) => (length === 0) || (end === 0) || fIndex(start) >= fIndex(end);
+
+function _findIndexTree (call, left, right) {
+  var index = left.findIndex(call);
+  return saveStore(this, "findIndex", call)(index === -1 ? right.findIndex(call) : index);
+}
+
+function _findLastIndexTree (call, left, right) {
+  var index = left.findLastIndex(call);
+  return saveStore(this, "findLastIndex", call)(index === -1 ? right.findLastIndex(call) : index);
+}
+
+function _findTree (call, left, right) {
+  var index = left.findIndex(call);
+  return saveStore(this, "find", call)(index === -1 ? right.find(call) : this[index]);
+}
+
+function _filterTree (call, left, right) {
+  var value = left.filter(call).concat(right.filter(call));
+  return saveStore(this, "filter", call)(List(value.length === this.length ? this : value));
+}
+
+function _findLastTree (call, left, right) {
+  var index = left.findLastIndex(call);
+  return saveStore(this, "findLast", call)(index === -1 ? right.findLast(call) : this[index]);
+}
+
+function _mapTree (call, left, right) {
+  return saveStore(this, "map", call)(left.map(call).concat(right.map(call)));
+}
+
+function _flatMapTree (call, left, right) {
+  return saveStore(this, "flatMap", call)(left.flatMap(call).concat(right.flatMap(call)));
+}
+
+function _findIndex (call) {
+  var findLastIndexStore = getStore(this, "findLastIndex");
+  if (findLastIndexStore.has(call)) {
+    var index = findLastIndexStore.get(call);
+    if (index === -1) return index;
+    index = this.findIndex(this, (value, key, values) => index === key || call(value, key, values));
+    return saveStore(this, "findIndex", call)(index);
+  }
+  return saveStore(this, "findIndex", call)(this.findIndex(call));
+}
+
+function _findLastIndex (call) {
+  var findIndexStore = getStore(this, "findIndex");
+  if (findIndexStore.has(call)) {
+    var index = findIndexStore.get(call);
+    if (index === -1) return index;
+    index = _findIndex.call(this, (value, key, values) => key === index || call(value, key, values));
+    return saveStore(this, "findLastIndex", call)(index);
+  }
+  return saveStore(this, "findLastIndex", call)(this.findLastIndex(call));
+}
+
+function _find (call) {
+  var index = _findIndex.call(this, call);
+  return saveStore(this, "find", call)(this[index]);
+}
+
+function _findLast (call) {
+  var index = _findLastIndex.call(this, call);
+  return saveStore(this, "findLast", call)(this[index]);
+}
+
+function _filter (call) {
+  var leftIndex = _findIndex.call(this, call);
+  if (leftIndex === -1) return saveStore(this, "filter", call)(empty);
+  var rightIndex = _findLastIndex.call(this, call);
+  if (leftIndex === 0 && rightIndex === this.length - 1) return saveStore(this, "filter", call)(List(this));
+
+  var value = this.filter(call);
+  return saveStore(this, "filter", call)(List(value.length === this.length ? this : value));
+}
+
+function _map (call) {
+  return saveStore(this, "map", call)(this.map(call));
+}
+
+function _flatMap (call) {
+  return saveStore(this, "flatMap", call)(this.flatMap(call));
+}
+
+function findIndex (call) {
+  var findIndexStore = getStore(this, "findIndex");
+  if (findIndexStore.has(call)) return findIndexStore.get(call);
+  return tree.call(this, _findIndexTree, _findIndex, call);
+}
+
+function findLastIndex (call) {
+  var findLastIndexStore = getStore(this, "findLastIndex");
+  if (findLastIndexStore.has(call)) return findLastIndexStore.get(call);
+  return tree.call(this, _findLastIndexTree, _findLastIndex, call);
+}
+
+function find (call) {
+  var findStore = getStore(this, "find");
+  if (findStore.has(call)) return findStore.get(call);
+  return tree.call(this, _findTree, _find, call);
+}
+
+function findLast (call) {
+  var findLastStore = getStore(this, "findLast");
+  if (findLastStore.has(call)) return findLastStore.get(call);
+  return tree.call(this, _findLastTree, _findLast, call);
+}
+
+function filter (call) {
+  var filterStore = getStore(this, "filter");
+  if (filterStore.has(call)) return filterStore.get(call);
+  return tree.call(this, _filterTree, _filter, call);
+}
+
+function map (call) {
+  var mapStore = getStore(this, "map");
+  if (mapStore.has(call)) return mapStore.get(call);
+  return tree.call(this, _mapTree, _map, call);
+}
+
+function flatMap (call) {
+  var flatMapStore = getStore(this, "flatMap");
+  if (flatMapStore.has(call)) return flatMapStore.get(call);
+  return tree.call(this, _flatMapTree, _flatMap, call);
+}
+
+function sliceTree (start, end, left, right) {
+  var leftLength = left.length;
+  if (start === 0) {
+    end = fIndex(end, this.length);
+    if (end === leftLength) return left;
+    if (end < leftLength) return left.slice(end);
+    return left.concat(right.slice(0, end - leftLength));
+  }
+
+  if (start < 0) start = leftLength + start;
+
+  if (start === leftLength) return end === undefined ? right : right.slice(0, end - leftLength);
+  if (start > leftLength) {
+    if (end === void 0) return right.slice(start - leftLength);
+    if (end < 0) end = this.length + end;
+    return right.slice(start - leftLength, end - leftLength);
+  }
+
+  if (start < leftLength) {
+    if (end === void 0) return left.slice(start);
+    if (end < 0) end = this.length + end;
+    return left.slice(start).concat(this.right.slice(0, end - leftLength));
+  }
+}
+
+function slice (start, end) {
+  var length = this.length;
+  if (isIgnoreSlice(start, end, length)) return this;
+  if (isEmptySlice(start, end, length)) return List.empty;
+  var left = getLeft(this);
+  if (left) return List(sliceTree.call(this, start, end, left, getRight(this)));
+  var value = this.slice(start, end);
+  return List(value);
+}
+
+function concat (...values) {
+  switch (values.length) {
+    case 0: return List(this);
+    case 1: {
+      var value = values[0];
+      var test = value && typeof value === "object";
+      var concatStore = getStore(this, "concat");
+      if (test && concatStore.has(value)) return concatStore.get(value);
+
+      if (isArray(value)) {
+        if (value.length === 0) {
+          var list = List(this);
+          concatStore.set(value, list);
+          return list;
         }
-        case "flatMap": return (call) => {
-          if (flatMap.has(is)) return flatMap.get(is);
-          var value = List(target.flatMap(call));
-          flatMap.set(call, value);
-          return target.flatMap(call);
-        }
-        case "toReversed": return () => {
-          if (length < 2) return is;
-          if (reverse.has(is)) return reverse.get(is);
-          var value = List(target.toReversed());
-          reverse.set(is, value);
-          reverse.set(value, is);
-          return value;
-        }
-        case "toSorted": return (call) => {
-          if (sort.has(is)) return sort.get(is);
-          var value = List(target.toSorted(call));
-          sort.set(call, value);
-          return value;
-        }
 
-        case "concat": return (...values) => {
-          switch (values.length) {
-            case 0: return is;
-            case 1: {
-              var value = values[0];
-              var test = value && typeof value === "object";
-              if (test && concat.has(value)) return concat.get(value);
-
-              if (isArray(value)) {
-                if (value.length === 0) {
-                  concat.set(value, is);
-                  return is;
-                }
-                value = List(value);
-                if (concat.has(value)) return concat.get(value);
-              }
-
-              var create = target.concat(value);
-              if (create.length === length) create = is;
-              else create = List(create, is, isArray(value) ? value : [value]);
-              test && concat.set(value, create);
-              return create;
-            }
-            default: {
-              var next = [];
-              var bit = -1;
-              values.forEach((value) => {
-                if (isArray(value)) {
-                  if (value.length === 0) return;
-                  bit = -1;
-                  return next.push(List(value));
-                }
-                if (bit > -1) return next[bit].push(value);
-                bit = next.length;
-                return next.push([value]);
-              });
-
-              var value = next.reduce((create, value) => {
-                if (concat.has(value)) return concat.get(value);
-                var next = List(create.concat(value), create, value);
-                concat.set(value, next);
-                return next;
-              }, target);
-
-              if (value.length === length) return is;
-              return List(value);
-            }
-          }
-        }
-
-        case "push":
-        case "pop":
-        case "shift":
-        case "unshift":
-        case "splice":
-        case "sort":
-        case "reverse":
-        case "fill":
-          return void 0;
-
-        default: {
-          var value = target[key];
-          if (value && value.constructor === Function) return (...values) => {
-            var create = target[key].apply(target, values);
-            if (isArray(create)) return List(create);
-            return create;
-          }
-          return value;
-        }
+        var listValue = List(value);
+        if (concatStore.has(listValue)) return concatStore.get(listValue);
+        var newList = List(this.concat(listValue));
+        setLeft(newList, this);
+        setRight(newList, value);
+        concatStore.set(value, newList);
+        return newList;
       }
-    }
-  });
 
-  return is;
-});
+      var create = List(this.concat(value));
+      setLeft(create, this);
+      setRight(create, [value]);
+      test && concatStore.set(value, create);
+      return create;
+    }
+    default: {
+      var next = [];
+      var bit = -1;
+      values.forEach((value) => {
+        if (isArray(value)) {
+          if (value.length === 0) return;
+          bit = -1;
+          return next.push(List(value));
+        }
+        if (bit > -1) return next[bit].push(value);
+        bit = next.length;
+        return next.push([value]);
+      });
+
+      var concatStore = getStore(this, "concat");
+      if (next.length === 0) return List(this);
+
+      var value = next.reduce((create, value) => {
+        if (concatStore.has(value)) return concatStore.get(value);
+        var next = List(create.concatStore(value));
+        setLeft(next, create);
+        setRight(next, value);
+        concatStore.set(value, next);
+        return next;
+      }, this);
+
+      if (value.length === length) return List(this);
+      return List(value);
+    }
+  }
+}
+
+var reversed = new WeakMap();
+function toReversed () {
+  if (reversed.has(this)) return reversed.get(this);
+  var left  = getLeft(this);
+  var right = getRight(this);
+  if (left && right) return reversed.set(this, right.toReversed().concat(left.toReversed())).get(this);
+  return reversed.set(this, this.toReversed()).get(this);
+}
+
+function toSorted (call) {
+  var sortedStore = getStore(this, "toSorted");
+  if (sortedStore.has(call)) return sortedStore.get(call);
+  return sortedStore.set(call, this.toSorted(call)).get(call);
+}
+
+var use = new Map(Object.entries({
+  findIndex,
+  findLastIndex,
+  find,
+  findLast,
+  filter,
+  map,
+  flatMap,
+
+  toReversed,
+  toSorted,
+
+  slice,
+  concat,
+}));
+
+var matchKey = (values) => (key) => values.has(key);
+var isMutation = matchKey(new Set(["push", "pop", "splice", "shift", "unshift", "sort", "reverse"]));
+
+function get (target, key) {
+  if (key === symbol) return true;
+  if (isMutation(key)) return undefined;
+  return use.has(key) ? use.get(key).bind(target) : target[key];
+}
+
+var empty = new Proxy([], {
+  get: get,
+})
+
+var List = memoizeWeak((values) => values[symbol] ? values : values.length === 0 ? empty : new Proxy((values), {
+  get: get,
+}));
 
 List.empty = empty;
+List.use   = use;
 
-export default List;
+var Executors = new Map();
+
+export default new Proxy(List, {
+  get: function (target, key) {
+    if (Executors.has(key)) return Executors.get(key);
+    if (use.has(key)) {
+      var executor = (...values) => (value) => use.get(key).call(value, ...values);
+      return Executors.set(key, executor).get(key);
+    }
+    return use.has(key) ? use.get(key) : target[key];
+  },
+});

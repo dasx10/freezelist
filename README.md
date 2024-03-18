@@ -172,7 +172,7 @@ For your own testing, you can review the `benchmark.js` file located in the libr
 ##### Other
 - The library contains several functions for memoization. You can apply them if necessary.
 ```
-import { memoize } from "freezelist";
+import memoize from "freezelist/memoize";
 ```
 
 ```
@@ -193,7 +193,7 @@ addMemo(1) === addMemo(1); // true
 
 
 ```
-import { memoizeWeak } from "freezelist"
+import memoizeWeak from "freezelist/memoizeWeak";
 ```
 
 ```
@@ -205,11 +205,39 @@ memoizeWeak(find) === memoizeWeak(find); // false
 ```
 
 ```
-import { memoWeak } from "freezelist"
+import memoWeak from "freezelist/memoWeak"
 
 var find = (call) => (values) => values.find(call);
 var findMemo = memoWeak(find);
 var identity = value => value
 findMemo(identity) === findMemo(identity); // true
 memoWeak(find) === memoWeak(find); // true
+```
+
+```
+import memo from "freezelist/memo"
+```
+
+```
+import always from "freezelist/always"
+
+var T = always(true);
+
+T() // true
+T(false) // true
+T(true) // true
+
+var F = always(false);
+
+F() // false
+F(false) // false
+F(true) // false
+```
+
+```
+import T from "freezelist/T"
+```
+
+```
+import F from "freezelist/F"
 ```
