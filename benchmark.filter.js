@@ -16,12 +16,12 @@ var testList1 = List(testArray);
 var end   = testList1.length;
 var start = 0;
 
-var next  = createArray(10000);
 while (iterations--) {
   testList1 = testList1.slice(start, end);
   testArray = testArray.slice(start, end);
 
   if (iterations % 4 === 0) {
+    var next  = createArray(10000);
     testList1 = testList1.concat(next);
     testArray = testArray.concat(next);
   }
