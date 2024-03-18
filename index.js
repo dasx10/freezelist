@@ -56,6 +56,9 @@ function _findLastIndexTree (call, left, right) {
 }
 
 function _findTree (call, left, right) {
+  var findStore = getStore(this, "find");
+  if (findStore.has(call)) return findStore.get(call);
+
   var index = left.findIndex(call);
   return saveStore(this, "find", call)(index === -1 ? right.find(call) : this[index]);
 }
@@ -81,6 +84,7 @@ function _flatMapTree (call, left, right) {
   return saveStore(this, "flatMap", call)(left.flatMap(call).concat(right.flatMap(call)));
 }
 
+var orIndex = (index, call) => (value, key, values) => index === key || call(value, key, values);
 function _findIndex (call) {
   var findIndexStore = getStore(this, "findIndex");
   if (findIndexStore.has(call)) return findIndexStore.get(call);
@@ -89,9 +93,10 @@ function _findIndex (call) {
   if (findLastIndexStore.has(call)) {
     var index = findLastIndexStore.get(call);
     if (index === -1) return index;
-    index = this.findIndex(this, (value, key, values) => index === key || call(value, key, values));
+    index = this.findIndex(this, orIndex(index, call));
     return saveStore(this, "findIndex", call)(index);
   }
+
   return saveStore(this, "findIndex", call)(this.findIndex(call));
 }
 
@@ -111,6 +116,8 @@ function _findLastIndex (call) {
 }
 
 function _find (call) {
+  var findStore = getStore(this, "find");
+  if (findStore.has(call)) return findStore.get(call);
   var index = _findIndex.call(this, call);
   return saveStore(this, "find", call)(this[index]);
 }
@@ -144,25 +151,34 @@ function _flatMap (call) {
 function findIndex (call) {
   var findIndexStore = getStore(this, "findIndex");
   if (findIndexStore.has(call)) return findIndexStore.get(call);
-  return tree.call(this, _findIndexTree, _findIndex, call);
+  var right = getRight(this);
+  if (right) return _findIndexTree.call(this, call, getLeft(this), right);
+  return _findIndex.call(this, call);
 }
 
 function findLastIndex (call) {
   var findLastIndexStore = getStore(this, "findLastIndex");
   if (findLastIndexStore.has(call)) return findLastIndexStore.get(call);
-  return tree.call(this, _findLastIndexTree, _findLastIndex, call);
+  var right = getRight(this);
+  if (right) return _findLastIndexTree.call(this, call, getLeft(this), right);
+  return _findLastIndex.call(this, call);
 }
 
 function find (call) {
   var findStore = getStore(this, "find");
   if (findStore.has(call)) return findStore.get(call);
-  return tree.call(this, _findTree, _find, call);
+
+  var right = getRight(this);
+  if (right) return _findTree.call(this, call, getLeft(this), right);
+  return _find.call(this, call);
 }
 
 function findLast (call) {
   var findLastStore = getStore(this, "findLast");
   if (findLastStore.has(call)) return findLastStore.get(call);
-  return tree.call(this, _findLastTree, _findLast, call);
+  var right = getRight(this);
+  if (right) return _findLastTree.call(this, call, getLeft(this), right);
+  return _findLast.call(this, call);
 }
 
 function filter (call) {
@@ -176,13 +192,17 @@ function filter (call) {
 function map (call) {
   var mapStore = getStore(this, "map");
   if (mapStore.has(call)) return mapStore.get(call);
-  return tree.call(this, _mapTree, _map, call);
+  var right = getRight(this);
+  if (right) return _mapTree.call(this, call, getLeft(this), right);
+  return _map.call(this, call);
 }
 
 function flatMap (call) {
   var flatMapStore = getStore(this, "flatMap");
   if (flatMapStore.has(call)) return flatMapStore.get(call);
-  return tree.call(this, _flatMapTree, _flatMap, call);
+  var right = getRight(this);
+  if (right) return _flatMapTree.call(this, call, getLeft(this), right);
+  return _flatMap.call(this, call);
 }
 
 function sliceTree (start, end, left, right) {

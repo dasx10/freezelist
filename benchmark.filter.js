@@ -40,7 +40,7 @@ while (iterations--) {
   }
 }
 
-var method = "filter";
+var method = "flatMap";
 
   var test = (values, call, name) => {
     var total = 0;
