@@ -196,6 +196,7 @@ function filter (call) {
     var right = getRight(this);
     if (right) return _filterTree.call(this, call, getLeft(this), right);
   }
+
   return _filter.call(this, call);
 }
 

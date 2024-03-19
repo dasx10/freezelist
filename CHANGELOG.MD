@@ -8,3 +8,9 @@
     - hide tree parameters list
     - fix use apply call and bind
     - modules helpers
+
+- 1.1.1
+    - optimization find findIndex findLastIndex findLast filter
+
+- 1.1.2
+    - fix index for find findIndex findLastIndex findLast filter
