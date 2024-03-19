@@ -1,13 +1,21 @@
-type ArrayMutationMethodKey = "push" | "pop" | "shift" | "unshift" | "slice" | "splice" | "sort" | "reverse";
-type ArrayIteratorFunction<Return, Value> = (value: Value, index: number, values: readonly Value) => Return;
+declare global {
+  namespace freezelist {
+    interface List<Value> extends ReadonlyArray<Value> {}
+  }
+}
 
-type ListProxy = <Values extends readonly any[]>(values: Values) => Readonly<Exclude<Values, ArrayMutationMethodKey>>;
+type ArrayIteratorFunction<Return = unknown, Value = unknown> = (value: Value, index: number, values: readonly Value[]) => Return;
 
 type FlatMap<Return> = Return extends readonly (infer Value)[]
-  ? readonly Value[]
-  : readonly Return[]
+  ? List<Value[]>
+  : List<Return[]>
 ;
 
+interface List<Value> extends freezelist.List<Value> {
+}
+
+
+type ListProxy = <Values extends readonly any[]>(values: Values) => List<Values>;
 /**
   * @function
   * @name List
@@ -47,20 +55,30 @@ type FlatMap<Return> = Return extends readonly (infer Value)[]
   * List([]) === List.empty // true
   * ```
   */
-declare const List: ListProxy & {
+
+type Statics = {
+  use           : <Return, Values extends readonly any[]>(call: (...values: Values) => Return) => typeof List;
+  empty         : readonly [];
+
   findIndex     : <Value>(call: ArrayIteratorFunction<any, Value>) => (values: readonly Value[]) => number;
   findLastIndex : <Value>(call: ArrayIteratorFunction<any, Value>) => (values: readonly Value[]) => number;
   some          : <Value>(call: ArrayIteratorFunction<any, Value>) => (values: readonly Value[]) => boolean;
   every         : <Value>(call: ArrayIteratorFunction<any, Value>) => (values: readonly Value[]) => boolean;
   find          : <Value>(call: ArrayIteratorFunction<any, Value>) => (values: readonly Value[]) => Value | undefined;
   findLast      : <Value>(call: ArrayIteratorFunction<any, Value>) => (values: readonly Value[]) => Value | undefined;
-  filter        : <Value>(call: ArrayIteratorFunction<any, Value>) => (values: readonly Value[]) => readonly Value[];
-  map           : <Value>(call: ArrayIteratorFunction<Return, Value>) => (values: readonly Value[]) => readonly Return[];
-  flatMap       : <Value>(call: ArrayIteratorFunction<Return, Value>) => (values: readonly Value[]) => FlatMap<Return>;
-  toReversed    : () => readonly Values[number][];
-  toSorted      : <Value>(call: ArrayIteratorFunction<Value>) => (values: readonly Value[]) => readonly Value[];
-  concat        : <Values extends readonly any[]>(...values: Values) => <Value extends readonly any[]>(value: Value) => readonly [...Value, ...FlatMap<Values>];
-  slice         : <Value>(start: number, end?: number) => (values: readonly Value[]) => readonly Value[];
+  filter        : <Value>(call: ArrayIteratorFunction<any, Value>) => (values: readonly Value[]) => List<Value[]>;
+  map           : <Return, Value>(call: ArrayIteratorFunction<Return, Value>) => (values: readonly Value[]) => List<Return[]>;
+  flatMap       : <Return ,Value>(call: ArrayIteratorFunction<Return, Value>) => (values: readonly Value[]) => FlatMap<Return>;
+  toReversed    : () => <Values extends readonly any[]>(values: Values) => List<Values[number][]>;
+  toSorted      : <Value>(call: ArrayIteratorFunction<Value>) => (values: readonly Value[]) => List<Value[]>;
+  concat        : <Values extends readonly any[]>(...values: Values) => <Value extends readonly any[]>(value: Value) => List<[...Value, ...FlatMap<Values>]>;
+  slice         : <Value>(start: number, end?: number) => (values: readonly Value[]) => List<Value[]>;
+  length: 1
 }
 
+type MethodsToStatic<Value extends Record<string, any>> = {
+  readonly [Key in keyof Value]: (...values: Parameters<Value[Key]>) => <Element>(value: readonly Element[]) => ReturnType<Value[Key]>
+};
+
+declare const List: ListProxy & MethodsToStatic<Extract<Omit<List<any>, keyof Statics>, Record<any, (...values: any[]) => any>>> & Statics;
 export default List;

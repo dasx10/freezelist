@@ -29,3 +29,6 @@
 
 - 1.2.0
     - add static helpers
+
+- 1.2.1 > 1.2.2
+    - add declarations

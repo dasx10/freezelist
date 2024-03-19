@@ -304,6 +304,7 @@ var use = new Map(Object.entries({
   concat,
 }));
 
+
 var matchKey = (values) => (key) => values.has(key);
 var isMutation = matchKey(new Set(["push", "pop", "splice", "shift", "unshift", "sort", "reverse"]));
 
@@ -321,18 +322,43 @@ var List = memoizeWeak((values) => values[symbol] ? values : values.length === 0
   get: get,
 }));
 
-List.empty = empty;
-List.use   = use;
+
 
 var Executors = new Map();
+
+var allowWeak = {
+  findIndex,
+  findLastIndex,
+  find,
+  findLast,
+  filter,
+  map,
+  flatMap,
+  toSorted,
+};
+
+var keys = {
+  empty,
+  use: (exec, name) => {
+    use.set(exec.name || name, exec);
+    return List;
+  },
+}
 
 export default new Proxy(List, {
   get: function (target, key) {
     if (Executors.has(key)) return Executors.get(key);
-    if (use.has(key)) {
-      var executor = (...values) => (value) => use.get(key).call(value, ...values);
+    if (keys[key]) return keys[key];
+    if (allowWeak) {
+      var executor = memoizeWeak((call) => memoizeWeak((value) => allowWeak[key].call(List(value), call)));
       return Executors.set(key, executor).get(key);
     }
+
+    if (use.has(key)) {
+      var executor = (...values) => (value) => use.get(key).call(List(value), ...values);
+      return Executors.set(key, executor).get(key);
+    }
+
     return use.has(key) ? use.get(key) : target[key];
   },
 });
