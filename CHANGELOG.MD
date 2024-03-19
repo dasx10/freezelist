@@ -26,3 +26,6 @@
 - 1.1.5
     - add documentation
     - minor optimizations
+
+- 1.2.0
+    - add static helpers

@@ -1,4 +1,12 @@
 type ArrayMutationMethodKey = "push" | "pop" | "shift" | "unshift" | "slice" | "splice" | "sort" | "reverse";
+type ArrayIteratorFunction<Return, Value> = (value: Value, index: number, values: readonly Value) => Return;
+
+type ListProxy = <Values extends readonly any[]>(values: Values) => Readonly<Exclude<Values, ArrayMutationMethodKey>>;
+
+type FlatMap<Return> = Return extends readonly (infer Value)[]
+  ? readonly Value[]
+  : readonly Return[]
+;
 
 /**
   * @function
@@ -39,4 +47,20 @@ type ArrayMutationMethodKey = "push" | "pop" | "shift" | "unshift" | "slice" | "
   * List([]) === List.empty // true
   * ```
   */
-export default function List<Values extends readonly any[]>(values: Values): Readonly<Exclude<Values, ArrayMutationMethodKey>>;
+declare const List: ListProxy & {
+  findIndex     : <Value>(call: ArrayIteratorFunction<any, Value>) => (values: readonly Value[]) => number;
+  findLastIndex : <Value>(call: ArrayIteratorFunction<any, Value>) => (values: readonly Value[]) => number;
+  some          : <Value>(call: ArrayIteratorFunction<any, Value>) => (values: readonly Value[]) => boolean;
+  every         : <Value>(call: ArrayIteratorFunction<any, Value>) => (values: readonly Value[]) => boolean;
+  find          : <Value>(call: ArrayIteratorFunction<any, Value>) => (values: readonly Value[]) => Value | undefined;
+  findLast      : <Value>(call: ArrayIteratorFunction<any, Value>) => (values: readonly Value[]) => Value | undefined;
+  filter        : <Value>(call: ArrayIteratorFunction<any, Value>) => (values: readonly Value[]) => readonly Value[];
+  map           : <Value>(call: ArrayIteratorFunction<Return, Value>) => (values: readonly Value[]) => readonly Return[];
+  flatMap       : <Value>(call: ArrayIteratorFunction<Return, Value>) => (values: readonly Value[]) => FlatMap<Return>;
+  toReversed    : () => readonly Values[number][];
+  toSorted      : <Value>(call: ArrayIteratorFunction<Value>) => (values: readonly Value[]) => readonly Value[];
+  concat        : <Values extends readonly any[]>(...values: Values) => <Value extends readonly any[]>(value: Value) => readonly [...Value, ...FlatMap<Values>];
+  slice         : <Value>(start: number, end?: number) => (values: readonly Value[]) => readonly Value[];
+}
+
+export default List;

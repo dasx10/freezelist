@@ -7,9 +7,10 @@ Proxy optimization of Array methods. For use with immutable methods. Contains me
 A lightweight [Node.js](https://nodejs.org/) package that memorizes past computations when providing the same functions as in previous calls.
 Or any javascript agent.
 
-- [helpers](#helpers)
-- [benchmark](#benchmark)
 - [memoized methods](#methods)
+- [helpers](#helpers)
+- [static helpers](#static)
+- [benchmark](#benchmark)
 
 ### INSTALL
 
@@ -91,6 +92,48 @@ this methods memoized
 - [toSorted](https://tc39.es/ecma262/#sec-array.prototype.tosorted)
 - [concat](https://tc39.es/ecma262/#sec-array.prototype.concat)
 
+##### static
+- findIndex
+- findLastIndex
+- find
+- findLast
+- filter
+- map
+- flatMap
+- every
+- some
+- toReversed
+- toSorted
+- concat
+- slice
+
+
+```javascript
+var isOdd = (value) => value % 2 === 1;
+var filterOdd = List.filter(isOdd);
+var stringAll = List.map(String);
+
+var numbers  = [1, 2, 3, 4, 5, 6];
+var odds     = filterOdd(numbers) // [1, 3, 5]
+var strOdds  = stringAll(odds) // ["1", "3", "5"]
+var strings  = stringAll(numbers) // ["1", "2", "3", "4", "5", "6"]
+
+var is5Str = (value) => value === "5";
+List.find(is5Str)(filterOdd(stringAll(numbers))) // "5"
+List.some(is5Str)(filterOdd(stringAll(numbers))) // true
+
+var isString = (value) => typeof value === "string";
+var someString = List.some(isString);
+someString(numbers) // false
+someString(strings) // true
+
+var concat123 = List.concat([1, 2, 3]);
+var everyString = List.every(isString);
+everyString(numbers) // false
+everyString(strings) // true
+var mix = concat123(strings); // [1, 2, 3, "1", "2", "3", "4", "5", "6"]
+everyString(mix) // false
+```
 
 ##### helpers
 - The library contains several functions for memoization. You can apply them if necessary.

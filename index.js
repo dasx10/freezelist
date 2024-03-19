@@ -1,5 +1,5 @@
 import memoizeWeak from "./memoizeWeak.js";
-import symbol from "./symbol.js";
+var symbol = Symbol();
 
 var Left  = new WeakMap();
 var Right = new WeakMap();
