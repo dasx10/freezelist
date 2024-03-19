@@ -151,57 +151,71 @@ function _flatMap (call) {
 function findIndex (call) {
   var findIndexStore = getStore(this, "findIndex");
   if (findIndexStore.has(call)) return findIndexStore.get(call);
-  var right = getRight(this);
-  if (right) return _findIndexTree.call(this, call, getLeft(this), right);
+  if (call.length < 2) {
+    var right = getRight(this);
+    if (right) return _findIndexTree.call(this, call, getLeft(this), right);
+  }
   return _findIndex.call(this, call);
 }
 
 function findLastIndex (call) {
   var findLastIndexStore = getStore(this, "findLastIndex");
   if (findLastIndexStore.has(call)) return findLastIndexStore.get(call);
-  var right = getRight(this);
-  if (right) return _findLastIndexTree.call(this, call, getLeft(this), right);
+  if (call.length < 2) {
+    var right = getRight(this);
+    if (right) return _findLastIndexTree.call(this, call, getLeft(this), right);
+  }
   return _findLastIndex.call(this, call);
 }
 
 function find (call) {
   var findStore = getStore(this, "find");
   if (findStore.has(call)) return findStore.get(call);
-
-  var right = getRight(this);
-  if (right) return _findTree.call(this, call, getLeft(this), right);
+  if (call.length < 2) {
+    var right = getRight(this);
+    if (right) return _findTree.call(this, call, getLeft(this), right);
+  }
   return _find.call(this, call);
 }
 
 function findLast (call) {
   var findLastStore = getStore(this, "findLast");
   if (findLastStore.has(call)) return findLastStore.get(call);
-  var right = getRight(this);
-  if (right) return _findLastTree.call(this, call, getLeft(this), right);
+  if (call.length < 2) {
+    var right = getRight(this);
+    if (right) return _findLastTree.call(this, call, getLeft(this), right);
+  }
   return _findLast.call(this, call);
 }
 
 function filter (call) {
   var filterStore = getStore(this, "filter");
   if (filterStore.has(call)) return filterStore.get(call);
-  var right = getRight(this);
-  if (right) return _filterTree.call(this, call, getLeft(this), right);
+
+  if (call.length < 2) {
+    var right = getRight(this);
+    if (right) return _filterTree.call(this, call, getLeft(this), right);
+  }
   return _filter.call(this, call);
 }
 
 function map (call) {
   var mapStore = getStore(this, "map");
   if (mapStore.has(call)) return mapStore.get(call);
-  var right = getRight(this);
-  if (right) return _mapTree.call(this, call, getLeft(this), right);
+  if (call.length < 2) {
+    var right = getRight(this);
+    if (right) return _mapTree.call(this, call, getLeft(this), right);
+  }
   return _map.call(this, call);
 }
 
 function flatMap (call) {
   var flatMapStore = getStore(this, "flatMap");
   if (flatMapStore.has(call)) return flatMapStore.get(call);
-  var right = getRight(this);
-  if (right) return _flatMapTree.call(this, call, getLeft(this), right);
+  if (call.length < 2) {
+    var right = getRight(this);
+    if (right) return _flatMapTree.call(this, call, getLeft(this), right);
+  }
   return _flatMap.call(this, call);
 }
 
