@@ -19,3 +19,6 @@
 - 1.1.3
     - fix index for filter
     - add test case
+
+- 1.1.4 > 1.1.5
+    - minor optimizations
