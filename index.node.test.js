@@ -148,8 +148,15 @@ import List from "./index.js";
      const testList = List([1, 2, 3]);
      assert.strictEqual(testList.concat(1).slice(0, -1), testList);
 
-     // var tempArray = [1, 2, 3];
-     // assert.strictEqual(testList.concat(tempArray).slice(0, -(tempArray.length)), testList);
+     var tempArray = [1, 2, 3];
+     assert.strictEqual(testList.concat(tempArray).slice(0, -(tempArray.length)), testList);
+   });
+
+   it ("filter test case", () => {
+     const testList = List([1, 2, 3]);
+     var values = testList.concat([1, 2]).concat([4, 5]).concat(6).concat(7).concat([8, 9]).concat(10);
+     console.dir({ values }, { depth: 10 })
+     assert.deepStrictEqual(values.filter((_, index) => index === 10), [values[10]]);
    });
  });
 })()

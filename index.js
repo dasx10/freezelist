@@ -195,9 +195,10 @@ function filter (call) {
   if (call.length < 2) {
     var right = getRight(this);
     if (right) return _filterTree.call(this, call, getLeft(this), right);
+    return _filter.call(this, call);
   }
 
-  return _filter.call(this, call);
+  return saveStore(this, "filter", call)(List(this.filter(call)));
 }
 
 function map (call) {
