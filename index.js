@@ -9,6 +9,10 @@ var getLeft  = (context) => Left.get(List(context));
 var setRight = (context, value) => Right.set(List(context), value);
 var setLeft  = (context, value) => Left.set(List(context), value);
 
+var empty = new Proxy([], {
+  get: get,
+})
+
 var Cache = new WeakMap();
 var getCache = (context) => Cache.get(context) || Cache.set(context, new Map).get(context);
 
@@ -56,7 +60,7 @@ function _findIndex (call) {
   var findLastIndexStore = getStore(this, "findLastIndex");
   if (findLastIndexStore.has(call)) {
     var index = findLastIndexStore.get(call);
-    if (index === -1) return index;
+    if (index < 1) return index;
     index = this.findIndex(this, orIndex(index, call));
     return saveStore(this, "findIndex", call)(index);
   }
@@ -72,7 +76,7 @@ function _findLastIndex (call) {
   if (findIndexStore.has(call)) {
     var index = findIndexStore.get(call);
     if (index === -1) return index;
-    index = _findIndex.call(this, (value, key, values) => key === index || call(value, key, values));
+    index = this.findLastIndex(this, orIndex(index, call));
     return saveStore(this, "findLastIndex", call)(index);
   }
 
@@ -105,16 +109,27 @@ function findIndex (call) {
 function findLastIndex (call) {
   var findLastIndexStore = getStore(this, "findLastIndex");
   if (findLastIndexStore.has(call)) return findLastIndexStore.get(call);
+
   if (call.length < 2) {
     var right = getRight(this);
     if (right) return _findLastIndexTree.call(this, call, getLeft(this), right);
   }
-  return _findLastIndex.call(this, call);
+
+  var findIndexStore = getStore(this, "findIndex");
+  if (findIndexStore.has(call)) {
+    var index = findIndexStore.get(call);
+    if (index === -1) return index;
+    index = this.findLastIndex(this, orIndex(index, call));
+    return saveStore(this, "findLastIndex", call)(index);
+  }
+
+  return saveStore(this, "findLastIndex", call)(this.findLastIndex(call));
 }
 
 function find (call) {
   var findStore = getStore(this, "find");
   if (findStore.has(call)) return findStore.get(call);
+
   if (call.length < 2) {
     var left = getLeft(this);
     if (left) {
@@ -122,6 +137,7 @@ function find (call) {
       return saveStore(this, "find", call)(index === -1 ? getRight(this).find(call) : this[index]);
     }
   }
+
   return saveStore(this, "find", call)(this[_findIndex.call(this, call)]);
 }
 
@@ -198,12 +214,15 @@ function sliceTree (start, end, left, right) {
     if (end < 0) end = this.length + end;
     return left.slice(start).concat(right.slice(0, end - leftLength));
   }
+
+  console.log(start, end, left, right);
+  return [];
 }
 
 function slice (start, end) {
   var length = this.length;
   if (isIgnoreSlice(start, end, length)) return List(this);
-  if (isEmptySlice(start, end, length)) return List.empty;
+  if (isEmptySlice(start, end, length)) return empty;
   var left = getLeft(this);
   var right = getRight(this);
   if (left && right) return List(sliceTree.call(this, start, end, left, right));
@@ -255,9 +274,9 @@ function concat (...values) {
         return next.push([value]);
       });
 
-      var concatStore = getStore(this, "concat");
       if (next.length === 0) return List(this);
 
+      var concatStore = getStore(this, "concat");
       var value = next.reduce((create, value) => {
         if (concatStore.has(value)) return concatStore.get(value);
         var next = List(create.concatStore(value));
@@ -314,9 +333,6 @@ function get (target, key) {
   return use.has(key) ? use.get(key).bind(target) : target[key];
 }
 
-var empty = new Proxy([], {
-  get: get,
-})
 
 var List = memoizeWeak((values) => values[symbol] ? values : values.length === 0 ? empty : new Proxy((values), {
   get: get,

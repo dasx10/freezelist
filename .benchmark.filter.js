@@ -15,7 +15,7 @@ var testList1 = List(testArray);
 
 var end    = testList1.length;
 var start  = 0;
-var method = "find";
+var method = "findLastIndex";
 
 var totalArray = 0;
 var totalList  = 0;
@@ -34,32 +34,38 @@ while (iterations--) {
   testList1[method](call);
   totalList += performance.now() - now;
 
-  testList1 = testList1.slice(start, end);
-  testArray = testArray.slice(start, end);
+  if (iterations % 10 === 0) {
+    testList1 = testList1.slice(start, end);
+    testArray = testArray.slice(start, end);
+    switch (iterations % 3) {
+      case 0: {
+        start += 10;
+      }
+      case 1: {
+        end -= 10;
+      }
+      case 2: {
+        start += 10;
+        end   -= 10;
+      }
+    }
+  }
 
   if (iterations % 4 === 0) {
-    var next  = createArray(10000);
-    testList1 = testList1.concat(next);
-    testArray = testArray.concat(next);
+
+    var next    = createArray(10000);
+    testArray   = testArray.concat(next);
+    var newList = testList1.concat(next);
+    testList1   = newList;
   }
 
-  switch (iterations % 3) {
-    case 0: {
-      start += 10;
-    }
-    case 1: {
-      end -= 10;
-    }
-    case 2: {
-      start += 10;
-      end   -= 10;
-    }
-  }
 }
 
-console.log("array", totalArray);
-console.log("list", totalList);
+console.log("length array", testArray.length);
+console.log("length list", testList1.length);
 
+console.log("total array", totalArray);
+console.log("total list", totalList);
 
 var test = (values, call, name) => {
   var total = 0;
@@ -78,7 +84,10 @@ var test = (values, call, name) => {
   console.log(name, total);
 }
 
+
   test(testArray, gt, "array");
   test(testList1, gtMemo, "list 1");
   test(testList1, gtMemo, "list 2");
-})()
+
+})();
+
