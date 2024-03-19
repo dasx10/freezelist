@@ -9,6 +9,7 @@ Or any javascript agent.
 
 - [helpers](#helpers)
 - [benchmark](#benchmark)
+- [memoized methods](#methods)
 
 ### INSTALL
 
@@ -72,6 +73,23 @@ List([]) === List.empty // true
 
 * If function references are constantly changing, it is recommended to use the general method [Object.freeze](https://tc39.es/ecma262/#sec-object.freeze) or create/apply another [Proxy](https://tc39.es/ecma262/#sec-proxy-constructor) wrapper.
 * All methods are implemented using [Array](https://tc39.es/ecma262/#sec-array-exotic-objects) [prototypes](https://tc39.es/ecma262/#sec-array.prototype). If any of the methods do not work, please pay attention to your ES version. Otherwise, install polyfills.
+
+
+#### methods
+
+this methods memoized
+- [findIndex](https://tc39.es/ecma262/#sec-array.prototype.findindex)
+- [findLastIndex](https://tc39.es/ecma262/#sec-array.prototype.findlastindex)
+- [find](https://tc39.es/ecma262/#sec-array.prototype.find)
+- [findLast](https://tc39.es/ecma262/#sec-array.prototype.findlast)
+- [filter](https://tc39.es/ecma262/#sec-array.prototype.filter)
+- [map](https://tc39.es/ecma262/#sec-array.prototype.map)
+- [flatMap](https://tc39.es/ecma262/#sec-array.prototype.flatmap)
+- [every](https://tc39.es/ecma262/#sec-array.prototype.every)
+- [some](https://tc39.es/ecma262/#sec-array.prototype.some)
+- [toReversed](https://tc39.es/ecma262/#sec-array.prototype.toreversed)
+- [toSorted](https://tc39.es/ecma262/#sec-array.prototype.tosorted)
+- [concat](https://tc39.es/ecma262/#sec-array.prototype.concat)
 
 
 ##### helpers
