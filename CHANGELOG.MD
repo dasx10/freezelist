@@ -32,3 +32,6 @@
 
 - 1.2.1 > 1.2.2
     - add declarations
+
+- 1.2.3
+    - fix optimization index
