@@ -13,4 +13,9 @@
     - optimization find findIndex findLastIndex findLast filter
 
 - 1.1.2
-    - fix index for find findIndex findLastIndex findLast filter
+    - fix index for find findIndex findLastIndex findLast
+    - update package files
+
+- 1.1.3
+    - fix index for filter
+    - add test case
