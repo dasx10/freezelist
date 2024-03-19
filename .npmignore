@@ -1,5 +1,4 @@
-./.benchmark.js
-./.benchmark.filter.js
-./CHANGELOG.md
-./.editorconfig
-./*.test.js
+.benchmark.*
+CHANGELOG.md
+.editorconfig
+*.test.js
