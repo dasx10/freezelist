@@ -20,5 +20,9 @@
     - fix index for filter
     - add test case
 
-- 1.1.4 > 1.1.5
+- 1.1.4
+    - minor optimizations
+
+- 1.1.5
+    - add documentation
     - minor optimizations
