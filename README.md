@@ -1,9 +1,14 @@
 # FREEZELIST
 
+Proxy optimization of Array methods. For use with immutable methods. Contains memoized methods. Does not modify the input array.
+
 ## DESCRIPTION
 
 A lightweight [Node.js](https://nodejs.org/) package that memorizes past computations when providing the same functions as in previous calls.
 Or any javascript agent.
+
+- [helpers](#helpers)
+- [benchmark](#benchmark)
 
 ### INSTALL
 
@@ -68,7 +73,179 @@ List([]) === List.empty // true
 * If function references are constantly changing, it is recommended to use the general method [Object.freeze](https://tc39.es/ecma262/#sec-object.freeze) or create/apply another [Proxy](https://tc39.es/ecma262/#sec-proxy-constructor) wrapper.
 * All methods are implemented using [Array](https://tc39.es/ecma262/#sec-array-exotic-objects) [prototypes](https://tc39.es/ecma262/#sec-array.prototype). If any of the methods do not work, please pay attention to your ES version. Otherwise, install polyfills.
 
-##### Benefits of Usage Illustrated with an Example.
+
+##### helpers
+- The library contains several functions for memoization. You can apply them if necessary.
+
+---
+
+###### memoWeak
+
+```javascript
+import memoWeak from "freezelist/memoWeak"
+```
+
+The memoWeak function is similar to [memoizeWeak](#memoizeWeak) but additionally memoizes the input function itself. This means that if the same function is passed to memoWeak again, it will return the same memoized version of that function.
+
+```javascript
+var find = (call) => (values) => values.find(call);
+var findMemo = memoWeak(find);
+var identity = value => value
+findMemo(identity) === findMemo(identity); // true
+memoWeak(find) === memoWeak(find); // true
+```
+
+---
+
+###### memo
+
+```javascript
+import memo from "freezelist/memo"
+```
+
+The memo function is similar to [memoize](#memoize) but additionally memoizes the parameter of the function. This means that if the same parameter is passed to memo again, it will return the same memoized result for that parameter.
+
+```javascript
+var add = (y) => (x) => x + y;
+var addMemo = memo(add);
+addMemo === memo(add) // true
+addMemo(1)(2) // 3
+addMemo(1) === addMemo(1) // true
+addMemo(1) === addMemo(2) // false
+```
+
+---
+
+###### memoizeWeak
+
+```javascript
+import memoizeWeak from "freezelist/memoizeWeak";
+```
+
+The memoizeWeak function behaves similarly to [memoize](#memoize) but utilizes weak references for caching, enabling efficient memory management.
+
+```javascript
+var find = (call) => (values) => values.find(call);
+var findMemo = memoizeWeak(find);
+var identity = value => value
+findMemo(identity) === findMemo(identity); // true
+memoizeWeak(find) === memoizeWeak(find); // false
+```
+
+---
+
+###### memoize
+
+```javascript
+import memoize from "freezelist/memoize";
+```
+
+This function is a higher-order function that performs memoization, a technique used to cache the results of expensive function calls.
+
+
+```javascript
+var inc = (next) => console.log("incrementing") || next++;
+var memoInc = memoize(inc);
+memoInc(2); // 3 | console -> incrementing
+memoInc(2); // 3
+memoInc(2); // 3
+memoInc(3); // 4 | console -> incrementing
+memoInc(3); // 4
+memoInc(2); // 3
+memoInc(1); // 2 | console -> incrementing
+
+var add = (next) => (value) => next + value;
+var addMemo = memoize((value) => add(value));
+addMemo(1) === addMemo(1); // true
+```
+
+---
+
+```javascript
+import once from "freezelist/once"
+```
+
+The once function memoizes the computation once and consistently returns the same computed value thereafter.
+
+```javascript
+var add = (y) => (x) => x + y;
+var addOnce = once(add);
+addOnce(1)(2) // 3
+addOnce(2)(2) // 3
+addOnce(3)(2) // 3
+addOnce(2)(3) // 4
+addOnce(3)(3) // 4
+addOnce(4)(4) // 5
+```
+
+---
+
+```javascript
+import pure from "freezelist/pure"
+```
+
+The pure function utilizes the body of the function as a key. If the function has already been created, it returns the same function. Caution: Do not use with side effects.
+
+```javascript
+pure((value) => value + 1) === pure((value) => value + 1) // true
+pure((x) => x + 1) === pure((y) => y + 1) // false
+
+```
+
+---
+
+```javascript
+import always from "freezelist/always"
+```
+
+always: Exports functions that always return a specified value, regardless of the input argument.
+
+```javascript
+var T = always(true);
+
+T() // true
+T(false) // true
+T(true) // true
+
+var F = always(false);
+
+F() // false
+F(false) // false
+F(true) // false
+```
+
+---
+
+```javascript
+import T from "freezelist/T"
+```
+
+T: Exports a function that always returns true.
+
+```javascript
+T() // true
+T(false) // true
+T(true) // true
+```
+
+---
+
+---
+
+```javascript
+import F from "freezelist/F"
+```
+
+F: Exports a function that always returns false.
+
+```javascript
+F() // false
+F(false) // false
+F(true) // false
+```
+
+##### benchmark
+Benefits of Usage Illustrated with an Example.
 
 
 Array benchmark (small is better)
@@ -168,76 +345,3 @@ List benchmark (small is better)
 | best    diff | -0.0082319974899292    |
 
 For your own testing, you can review the `benchmark.js` file located in the library folder.
-
-##### Other
-- The library contains several functions for memoization. You can apply them if necessary.
-```
-import memoize from "freezelist/memoize";
-```
-
-```
-var inc = (next) => console.log("incrementing") || next++;
-var memoInc = memoize(inc);
-memoInc(2); // 3 | console -> incrementing
-memoInc(2); // 3
-memoInc(2); // 3
-memoInc(3); // 4 | console -> incrementing
-memoInc(3); // 4
-memoInc(2); // 3
-memoInc(1); // 2 | console -> incrementing
-
-var add = (next) => (value) => next + value;
-var addMemo = memoize((value) => add(value));
-addMemo(1) === addMemo(1); // true
-```
-
-
-```
-import memoizeWeak from "freezelist/memoizeWeak";
-```
-
-```
-var find = (call) => (values) => values.find(call);
-var findMemo = memoizeWeak(find);
-var identity = value => value
-findMemo(identity) === findMemo(identity); // true
-memoizeWeak(find) === memoizeWeak(find); // false
-```
-
-```
-import memoWeak from "freezelist/memoWeak"
-
-var find = (call) => (values) => values.find(call);
-var findMemo = memoWeak(find);
-var identity = value => value
-findMemo(identity) === findMemo(identity); // true
-memoWeak(find) === memoWeak(find); // true
-```
-
-```
-import memo from "freezelist/memo"
-```
-
-```
-import always from "freezelist/always"
-
-var T = always(true);
-
-T() // true
-T(false) // true
-T(true) // true
-
-var F = always(false);
-
-F() // false
-F(false) // false
-F(true) // false
-```
-
-```
-import T from "freezelist/T"
-```
-
-```
-import F from "freezelist/F"
-```
