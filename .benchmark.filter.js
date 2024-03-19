@@ -8,14 +8,14 @@ var createArray = (length) => Array.from({ length }, (_, i) => i);
 var gt          = (next) => Object.defineProperty((value) => value > next, "name", { value: " (is:" + next + ") " });
 var gtMemo      = memoize((value) => gt(value));
 
-var iterations = 10000;
+var iterations = 1000;
 
 var testArray = createArray(10000);
 var testList1 = List(testArray);
 
 var end    = testList1.length;
 var start  = 0;
-var method = "findLastIndex";
+var method = "find";
 
 var totalArray = 0;
 var totalList  = 0;
@@ -52,11 +52,9 @@ while (iterations--) {
   }
 
   if (iterations % 4 === 0) {
-
-    var next    = createArray(10000);
-    testArray   = testArray.concat(next);
-    var newList = testList1.concat(next);
-    testList1   = newList;
+    var next  = createArray(10000);
+    testArray = testArray.concat(next);
+    testList1 = testList1.concat(next);
   }
 
 }
@@ -85,7 +83,7 @@ var test = (values, call, name) => {
 }
 
 
-  test(testArray, gt, "array");
+  test(testArray, gtMemo, "array");
   test(testList1, gtMemo, "list 1");
   test(testList1, gtMemo, "list 2");
 
