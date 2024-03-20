@@ -38,3 +38,6 @@
 
 - 1.2.4
     - fix documentation
+
+- 1.2.5
+    - optimization filter findIndex findLastIndex find findLast toSorted
