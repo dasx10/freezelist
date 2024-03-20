@@ -152,11 +152,23 @@ import List from "./index.js";
      assert.strictEqual(testList.concat(tempArray).slice(0, -(tempArray.length)), testList);
    });
 
-   it ("filter test case", () => {
+   it ("filter test index", () => {
      const testList = List([1, 2, 3]);
      var values = testList.concat([1, 2]).concat([4, 5]).concat(6).concat(7).concat([8, 9]).concat(10);
-     console.dir({ values }, { depth: 10 })
      assert.deepStrictEqual(values.filter((_, index) => index === 10), [values[10]]);
    });
+
+   it ("find test index", () => {
+     const testList = List([1, 2, 3]);
+     var values = testList.concat([1, 2]).concat([4, 5]).concat(6).concat(7).concat([8, 9]).concat(10);
+     assert.deepStrictEqual(values.find((_, index) => index === 10), values[10]);
+   });
+
+   it ("findLast test index", () => {
+     const testList = List([1, 2, 3]);
+     var values = testList.concat([1, 2]).concat([4, 5]).concat(6).concat(7).concat([8, 9]).concat(10);
+     assert.deepStrictEqual(values.findLast((_, index) => index === 10), values[10]);
+   });
+
  });
 })()

@@ -69,7 +69,7 @@ type Statics = {
   map           : <Return, Value>(call: ArrayIteratorFunction<Return, Value>) => (values: readonly Value[]) => List<Return[]>;
   flatMap       : <Return ,Value>(call: ArrayIteratorFunction<Return, Value>) => (values: readonly Value[]) => FlatMap<Return>;
   toReversed    : () => <Values extends readonly any[]>(values: Values) => List<Values[number][]>;
-  toSorted      : <Value>(call: ArrayIteratorFunction<Value>) => (values: readonly Value[]) => List<Value[]>;
+  toSorted      : <Value>(call: (value: Value, next: Value) => number) => (values: readonly Value[]) => List<Value[]>;
   concat        : <Values extends readonly any[]>(...values: Values) => <Value extends readonly any[]>(value: Value) => List<[...Value, ...FlatMap<Values>]>;
   slice         : <Value>(start: number, end?: number) => (values: readonly Value[]) => List<Value[]>;
   length: 1

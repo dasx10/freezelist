@@ -15,7 +15,7 @@ var testList1 = List(testArray);
 
 var end    = testList1.length;
 var start  = 0;
-var method = "find";
+var method = "filter";
 
 var totalArray = 0;
 var totalList  = 0;

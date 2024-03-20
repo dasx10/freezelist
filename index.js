@@ -32,27 +32,18 @@ var isArray        = Array.isArray;
 var absIndex       = (index, length) => index < 0 ? 0 : index > length ? length : index;
 var normalizeIndex = (index, length) => absIndex(index < 0 ? length + index : index, length);
 var orIndex        = (index, call)   => (value, key, values) => index === key || call(value, key, values);
-var addIndex       = (index, call)   => (value, key, values) => call(value, key + index, values);
 
 var isIgnoreSlice = (start, end, length) => (start === undefined)
   || (normalizeIndex(start) <= 0) && (end === undefined || normalizeIndex(end) >= length);
 
 var isEmptySlice  = (start, end, length) => (length === 0) || (end === 0) || normalizeIndex(start) >= normalizeIndex(end);
 
-function _findIndexTree (call, left, right) {
-  var findIndexStore = getStore(this, "findIndex");
-  if (findIndexStore.has(call)) return findIndexStore.get(call);
-  var index = left.findIndex(call);
-  return saveStore(this, "findIndex", call)(index === -1 ? right.findIndex(call.length < 2 ? call : addIndex(left.length, call)) : index);
-}
-
 function _findLastIndexTree (call, left, right) {
   var findLastIndexStore = getStore(this, "findLastIndex");
   if (findLastIndexStore.has(call)) return findLastIndexStore.get(call);
-  var index = right.findLastIndex(call.length < 2 ? call : addIndex(left.length, call));
+  var index = right.findLastIndex(call);
   return saveStore(this, "findLastIndex", call)(index === -1 ? left.findLastIndex(call) : index);
 }
-
 
 function _findIndex (call) {
   var findIndexStore = getStore(this, "findIndex");
@@ -62,7 +53,7 @@ function _findIndex (call) {
   if (findLastIndexStore.has(call)) {
     var index = findLastIndexStore.get(call);
     if (index < 1) return index;
-    index = this.findIndex(this, orIndex(index, call));
+    index = this.findIndex.call(this, orIndex(index, call));
     return saveStore(this, "findIndex", call)(index);
   }
 
@@ -77,32 +68,23 @@ function _findLastIndex (call) {
   if (findIndexStore.has(call)) {
     var index = findIndexStore.get(call);
     if (index === -1) return index;
-    index = this.findLastIndex(this, orIndex(index, call));
+    index = this.findLastIndex.call(this, orIndex(index, call));
     return saveStore(this, "findLastIndex", call)(index);
   }
 
   return saveStore(this, "findLastIndex", call)(this.findLastIndex(call));
 }
 
-function _filter (call) {
-  var filterStore = getStore(this, "filter");
-  if (filterStore.has(call)) return filterStore.get(call);
-
-  var leftIndex = _findIndex.call(this, call);
-  if (leftIndex === -1) return saveStore(this, "filter", call)(empty);
-
-  var rightIndex = _findLastIndex.call(this, call);
-  if (leftIndex === 0 && rightIndex === this.length - 1) return saveStore(this, "filter", call)(List(this));
-
-  var value = this.slice(leftIndex, rightIndex).filter(call);
-  return saveStore(this, "filter", call)(List(value.length === this.length ? this : value));
-}
-
 function findIndex (call) {
   var findIndexStore = getStore(this, "findIndex");
   if (findIndexStore.has(call)) return findIndexStore.get(call);
-  var right = getRight(this);
-  if (right) return _findIndexTree.call(this, call, getLeft(this), right);
+  if (call.length < 2) {
+    var left = getLeft(this);
+    if (left) {
+      var index = left.findIndex(call);
+      return saveStore(this, "findIndex", call)(index === -1 ? getRight(this).findIndex(call) : index);
+    }
+  }
   return _findIndex.call(this, call);
 }
 
@@ -129,53 +111,43 @@ function findLastIndex (call) {
 function find (call) {
   var findStore = getStore(this, "find");
   if (findStore.has(call)) return findStore.get(call);
-
-  var left = getLeft(this);
-  if (left) {
-    var index = left.findIndex(call);
-    return saveStore(this, "find", call)(index === -1 ? getRight(this).find(call.length < 2 ? call : addIndex(left.length, call)) : this[index]);
-  }
-
   return saveStore(this, "find", call)(this[_findIndex.call(this, call)]);
 }
 
 function findLast (call) {
   var findLastStore = getStore(this, "findLast");
   if (findLastStore.has(call)) return findLastStore.get(call);
-  var right = getRight(this);
-  if (right) {
-    var index = right.findLastIndex(call);
-    if (index === -1) {
-      var left = getLeft(this);
-      index = left.findLastIndex(call.length < 2 ? call : addIndex(left.length, call));
-    }
-    return saveStore(this, "findLast", call)(index);
-  }
   return saveStore(this, "findLast", call)(this[_findLastIndex.call(this, call)]);
 }
 
 function filter (call) {
   var filterStore = getStore(this, "filter");
   if (filterStore.has(call)) return filterStore.get(call);
+  var save = saveStore(this, "filter", call);
+  if (call.length < 2) {
+    var leftIndex = _findIndex.call(this, call);
+    if (leftIndex === -1) return save(empty);
 
-  var right = getRight(this);
-  if (right) {
-    var left = getLeft(this);
-    var value = left.filter(call).concat(right.filter(call.length < 2 ? call : addIndex(left.length, call)));
-    return saveStore(this, "filter", call)(List(value.length === this.length ? this : value));
+    var rightIndex = _findLastIndex.call(this, call);
+    if (leftIndex === 0 && rightIndex === this.length - 1) return saveStore(this, "filter", call)(List(this));
+
+    var value = slice.call(this, leftIndex, rightIndex).filter(call);
+    return save(List(value.length === this.length ? this : value));
   }
 
-  return saveStore(this, "filter", call)(this.filter(call));
-  // return _filter.call(this, call);
+  var value = this.filter(call);
+  return save(List(value.length === this.length ? this : value));
 }
 
 function map (call) {
   var mapStore = getStore(this, "map");
   if (mapStore.has(call)) return mapStore.get(call);
-  var right = getRight(this);
-  if (right) {
-    var left = getLeft(this);
-    return saveStore(this, "map", call)(left.map(call).concat(right.map(call.length < 2 ? call : addIndex(left.length, call))));
+  if (call.length < 2) {
+    var right = getRight(this);
+    if (right) {
+      var left = getLeft(this);
+      return saveStore(this, "map", call)(left.map(call).concat(right.map(call)));
+    }
   }
   return saveStore(this, "map", call)(this.map(call));
 }
@@ -183,10 +155,12 @@ function map (call) {
 function flatMap (call) {
   var flatMapStore = getStore(this, "flatMap");
   if (flatMapStore.has(call)) return flatMapStore.get(call);
-  var right = getRight(this);
-  if (right) {
-    var left = getLeft(this);
-    return saveStore(this, "flatMap", call)(left.flatMap(call).concat(right.flatMap(call.length < 2 ? call : addIndex(left.length, call))));
+  if (call.length < 2) {
+    var right = getRight(this);
+    if (right) {
+      var left = getLeft(this);
+      return saveStore(this, "flatMap", call)(left.flatMap(call).concat(right.flatMap(call)));
+    }
   }
   return saveStore(this, "flatMap", call)(this.flatMap(call));
 }
@@ -303,7 +277,46 @@ function toReversed () {
 function toSorted (call) {
   var sortedStore = getStore(this, "toSorted");
   if (sortedStore.has(call)) return sortedStore.get(call);
-  return sortedStore.set(call, this.toSorted(call)).get(call);
+  var length = this.length;
+  if (length < 2) return sortedStore.set(call, List(this)).get(call);
+
+  var left = getLeft(this);
+  var right = getRight(this);
+  if (left && right) {
+    var sortedLeft  = left.toSorted(call);
+    var sortedRight = right.toSorted(call);
+    var newArray    = Array(length);
+    var index       = 0;
+    var leftIndex   = 0;
+    var rightIndex  = 0;
+    var leftLength  = sortedLeft.length;
+    var rightLength = sortedRight.length;
+    var min         = Math.min(leftLength, rightLength);
+    while (index < min) {
+      if (call(sortedLeft[leftIndex], sortedRight[rightIndex]) < 0) {
+        newArray[index] = sortedLeft[leftIndex];
+        leftIndex++;
+      } else {
+        newArray[index] = sortedRight[rightIndex];
+        rightIndex++;
+      }
+      index++;
+    }
+    while (leftIndex < leftLength) {
+      newArray[index] = sortedLeft[leftIndex];
+      leftIndex++;
+      index++;
+    }
+    while (rightIndex < rightLength) {
+      newArray[index] = sortedRight[rightIndex];
+      rightIndex++;
+      index++;
+    }
+
+    return sortedStore.set(call, List(newArray)).get(call);
+  }
+
+  return sortedStore.set(call, List(this.toSorted(call))).get(call);
 }
 
 var use = new Map(Object.entries({
