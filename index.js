@@ -26,16 +26,18 @@ var getStore = (context, name) => {
   return map.get(name) || map.set(name, new WeakMap).get(name);
 }
 
-export var saveStore = (context, name, key) => (value) => (getStore(context, name).set(key, value), value);
+var saveStore = (context, name, key) => (value) => (getStore(context, name).set(key, value), value);
 
-var isArray = Array.isArray;
-var nIndex = (key, length) => key < 0 ? 0 : key > length ? length : key;
-var fIndex = (key, length) => nIndex(key < 0 ? length + key : key, length);
+var isArray        = Array.isArray;
+var absIndex       = (index, length) => index < 0 ? 0 : index > length ? length : index;
+var normalizeIndex = (index, length) => absIndex(index < 0 ? length + index : index, length);
+var orIndex        = (index, call)   => (value, key, values) => index === key || call(value, key, values);
+var addIndex       = (index, call)   => (value, key, values) => call(value, key + index, values);
 
 var isIgnoreSlice = (start, end, length) => (start === undefined)
-  || (fIndex(start) <= 0) && (end === undefined || fIndex(end) >= length);
+  || (normalizeIndex(start) <= 0) && (end === undefined || normalizeIndex(end) >= length);
 
-var isEmptySlice  = (start, end, length) => (length === 0) || (end === 0) || fIndex(start) >= fIndex(end);
+var isEmptySlice  = (start, end, length) => (length === 0) || (end === 0) || normalizeIndex(start) >= normalizeIndex(end);
 
 function _findIndexTree (call, left, right) {
   var findIndexStore = getStore(this, "findIndex");
@@ -51,8 +53,6 @@ function _findLastIndexTree (call, left, right) {
   return saveStore(this, "findLastIndex", call)(index === -1 ? left.findLastIndex(call) : index);
 }
 
-var orIndex = (index, call) => (value, key, values) => index === key || call(value, key, values);
-var addIndex = (index, call) => (value, key, values) => call(value, key + index, values);
 
 function _findIndex (call) {
   var findIndexStore = getStore(this, "findIndex");
@@ -194,7 +194,7 @@ function flatMap (call) {
 function sliceTree (start, end, left, right) {
   var leftLength = left.length;
   if (start === 0) {
-    end = fIndex(end, this.length);
+    end = normalizeIndex(end, this.length);
     if (end === leftLength) return left;
     if (end < leftLength) return left.slice(end);
     return left.concat(right.slice(0, end - leftLength));
@@ -215,7 +215,6 @@ function sliceTree (start, end, left, right) {
     return left.slice(start).concat(right.slice(0, end - leftLength));
   }
 
-  console.log(start, end, left, right);
   return [];
 }
 

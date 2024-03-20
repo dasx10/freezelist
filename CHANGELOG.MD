@@ -35,3 +35,6 @@
 
 - 1.2.3
     - fix optimization index
+
+- 1.2.4
+    - fix documentation

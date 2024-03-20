@@ -47,7 +47,6 @@ type ListProxy = <Values extends readonly any[]>(values: Values) => List<Values>
   * testList.shift // undefined
   * testList.pop // undefined
   * testList.unshift // undefined
-  * testList.slice // undefined
   * testList.splice // undefined
   * testList.sort // undefined
   * testList.reverse // undefined
