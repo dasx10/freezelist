@@ -11,6 +11,7 @@ var setLeft  = (context, value) => Left.set(List(context), value);
 
 var empty = new Proxy([], {
   get: get,
+  set: set,
 })
 
 var Cache = new WeakMap();
@@ -345,12 +346,15 @@ function get (target, key) {
   return use.has(key) ? use.get(key).bind(target) : target[key];
 }
 
+function set (target, key, value) {
+  if (target[key] === value) return value;
+  throw TypeError("Cannot set properties of List (setting " + key + ")");
+}
 
 var List = memoizeWeak((values) => values[symbol] ? values : values.length === 0 ? empty : new Proxy((values), {
   get: get,
+  set: set,
 }));
-
-
 
 var Executors = new Map();
 

@@ -13,6 +13,8 @@ var list2 = [];
 var now = 0;
 var time = 0;
 
+var sum = values => values.reduce((a, b) => a + b, 0);
+
 while (i--) {
   now = performance.now();
   arr[method](exec);
@@ -31,9 +33,10 @@ while (i--) {
 
   arr = arr.concat(arr)
   list = list.concat(list)
-}
 
-var sum = values => values.reduce((a, b) => a + b, 0);
-console.log("array", arrays, sum(arrays));
-console.log("list1", list1, sum(list1));
-console.log("list2", list2, sum(list2));
+  console.group(method + " " + i);
+  console.log("array", sum(arrays));
+  console.log("list1", sum(list1));
+  console.log("list2", sum(list2));
+  console.groupEnd();
+}
