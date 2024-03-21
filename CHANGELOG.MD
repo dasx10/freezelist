@@ -41,3 +41,6 @@
 
 - 1.2.5
     - optimization filter findIndex findLastIndex find findLast toSorted
+
+- 1.2.6
+    - freeze index
